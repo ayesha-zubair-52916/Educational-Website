@@ -13,7 +13,7 @@
 - pushed the Docker image to Docker Hub
 
 
-**Project Deliverable 3**
+**Activity- Docker Compose**
 
 * Created a backend folder for the application
 * Added a Dockerfile for the backend
