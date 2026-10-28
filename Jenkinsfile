@@ -4,10 +4,11 @@ pipeline {
 
     environment {
         FRONTEND_IMAGE = 'ayeshazubair/educational-website-frontend'
-        BACKEND_IMAGE = 'ayeshazubair/educational-website-backend'
+        BACKEND_IMAGE  = 'ayeshazubair/educational-website-backend'
     }
 
     stages {
+
         stage('Pull Code from GitHub') {
             steps {
                 git branch: 'main',
@@ -17,24 +18,44 @@ pipeline {
 
         stage('Build Docker Images') {
             steps {
-                bat 'docker build -t %FRONTEND_IMAGE% ./frontend'
-                bat 'docker build -t %BACKEND_IMAGE% ./backend'
+                bat 'docker build -t %FRONTEND_IMAGE%:latest ./frontend'
+                bat 'docker build -t %BACKEND_IMAGE%:latest ./backend'
             }
         }
 
         stage('Push Images to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'docker',
-                    usernameVariable: 'DH_USER',
-                    passwordVariable: 'DH_TOKEN'
-                )]) {
-                    bat 'echo %DH_TOKEN% | docker login -u %DH_USER% --password-stdin'
-                    bat 'docker push %FRONTEND_IMAGE%'
-                    bat 'docker push %BACKEND_IMAGE%'
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'docker-credentials',
+                        usernameVariable: 'DH_USER',
+                        passwordVariable: 'DH_TOKEN'
+                    )
+                ]) {
+                    powershell '''
+                        $ErrorActionPreference = "Stop"
+                        $env:DH_TOKEN | docker login -u $env:DH_USER --password-stdin
+                        if ($LASTEXITCODE -ne 0) {
+                            throw "Docker Hub login failed."
+                        }
+                    '''
+
+                    bat 'docker push %FRONTEND_IMAGE%:latest'
+                    bat 'docker push %BACKEND_IMAGE%:latest'
+
                     bat 'docker logout'
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo 'SUCCESS: Both Docker images were pushed to Docker Hub.'
+        }
+
+        failure {
+            echo 'FAILED: Check the Jenkins Console Output for the error.'
         }
     }
 }
