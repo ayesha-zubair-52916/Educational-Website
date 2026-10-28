@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -8,13 +7,6 @@ pipeline {
     }
 
     stages {
-
-        stage('Pull Code from GitHub') {
-            steps {
-                git branch: 'main',
-                    url: 'https://github.com/ayesha-zubair-52916/Educational-Website.git'
-            }
-        }
 
         stage('Build Docker Images') {
             steps {
@@ -32,28 +24,31 @@ pipeline {
                         passwordVariable: 'DH_TOKEN'
                     )
                 ]) {
+
+                    // TEMPORARY DEBUG: remove after the build works
                     powershell '''
-                        $ErrorActionPreference = "Stop"
-                        $env:DH_TOKEN | docker login -u $env:DH_USER --password-stdin
-                        if ($LASTEXITCODE -ne 0) {
-                            throw "Docker Hub login failed."
-                        }
+                        Write-Host "User: [$env:DH_USER] length: $($env:DH_USER.Length)"
+                        Write-Host "Token length: $($env:DH_TOKEN.Length)"
+                        Write-Host "Starts with dckr_pat_: $($env:DH_TOKEN.StartsWith('dckr_pat_'))"
                     '''
+
+                    // No space between %DH_TOKEN% and the pipe
+                    bat '@echo off && echo %DH_TOKEN%| docker login -u %DH_USER% --password-stdin'
 
                     bat 'docker push %FRONTEND_IMAGE%:latest'
                     bat 'docker push %BACKEND_IMAGE%:latest'
-
-                    bat 'docker logout'
                 }
             }
         }
     }
 
     post {
+        always {
+            bat 'docker logout'
+        }
         success {
             echo 'SUCCESS: Both Docker images were pushed to Docker Hub.'
         }
-
         failure {
             echo 'FAILED: Check the Jenkins Console Output for the error.'
         }
