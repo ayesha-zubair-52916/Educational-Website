@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -7,6 +8,13 @@ pipeline {
     }
 
     stages {
+
+        stage('Pull Code from GitHub') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/ayesha-zubair-52916/Educational-Website.git'
+            }
+        }
 
         stage('Build Docker Images') {
             steps {
@@ -24,7 +32,6 @@ pipeline {
                         passwordVariable: 'DH_TOKEN'
                     )
                 ]) {
-                    // No space between %DH_TOKEN% and the pipe
                     bat '@echo off && echo %DH_TOKEN%| docker login -u %DH_USER% --password-stdin'
 
                     bat 'docker push %FRONTEND_IMAGE%:latest'
@@ -40,9 +47,11 @@ pipeline {
         always {
             bat 'docker logout'
         }
+
         success {
             echo 'SUCCESS: Both Docker images were pushed to Docker Hub.'
         }
+
         failure {
             echo 'FAILED: Check the Jenkins Console Output for the error.'
         }
